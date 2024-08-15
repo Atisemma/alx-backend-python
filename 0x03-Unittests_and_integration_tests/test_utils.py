@@ -1,61 +1,42 @@
 #!/usr/bin/env python3
-"""
-Unit tests for utils.access_nested_map function.
-"""
+"""Module for testing the get_json function from utils."""
 
 import unittest
+from unittest.mock import patch, Mock
 from parameterized import parameterized
-from typing import Mapping, Sequence, Any
-from utils import access_nested_map
+from typing import Dict, Any
+from utils import get_json
 
 
-class TestAccessNestedMap(unittest.TestCase):
-    """
-    Test case for the access_nested_map function.
-    """
+class TestGetJson(unittest.TestCase):
+    """Test case for the get_json function."""
 
     @parameterized.expand([
-        ({"a": 1}, ("a",), 1),
-        ({"a": {"b": 2}}, ("a",), {"b": 2}),
-        ({"a": {"b": 2}}, ("a", "b"), 2),
+        ("http://example.com", {"payload": True}),
+        ("http://holberton.io", {"payload": False}),
     ])
-    def test_access_nested_map(self, nested_map: Mapping,
-                               path: Sequence, expected: Any) -> None:
+    @patch('requests.get')
+    def test_get_json(self, test_url: str, test_payload: Dict[str, Any],
+                      mock_get: Mock) -> None:
         """
-        Test that access_nested_map returns the expected result.
+        Test that utils.get_json returns the expected result.
 
         Args:
-            nested_map (Mapping): The nested map to access.
-            path (Sequence): The path to the desired value.
-            expected (Any): The expected result.
+            test_url (str): The URL to test.
+            test_payload (Dict[str, Any]): The expected payload.
+            mock_get (Mock): The mocked requests.get function.
 
         Returns:
             None
         """
-        self.assertEqual(access_nested_map(nested_map, path), expected)
+        mock_response = Mock()
+        mock_response.json.return_value = test_payload
+        mock_get.return_value = mock_response
 
-    @parameterized.expand([
-        ({}, ("a",), "a"),
-        ({"a": 1}, ("a", "b"), "b"),
-    ])
-    def test_access_nested_map_exception(self, nested_map: Mapping,
-                                         path: Sequence,
-                                         expected_key: str) -> None:
-        """
-        Test access_nested_map raises a KeyError with the expected message.
+        result = get_json(test_url)
 
-        Args:
-            nested_map (Mapping): The nested map to access.
-            path (Sequence): The path that should raise a KeyError.
-            expected_key (str): The expected key in the error message.
-
-        Returns:
-            None
-        """
-        with self.assertRaises(KeyError) as context:
-            access_nested_map(nested_map, path)
-
-        self.assertEqual(str(context.exception), f"'{expected_key}'")
+        mock_get.assert_called_once_with(test_url)
+        self.assertEqual(result, test_payload)
 
 
 if __name__ == '__main__':
